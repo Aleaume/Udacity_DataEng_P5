@@ -6,7 +6,7 @@ Udacity Nanodegree Data Engineering - Project 5 Data Pipelines
 All the tasks defined have a well stated dependency in specified in the main DAG file as follow,
 starting with a start_execution and finishing with an end_execution task.
 
-'''python
+```python
 
 start_operator >> create_staging_tables
 
@@ -30,7 +30,7 @@ load_time_dimension_table >> end_operator
 
 run_quality_checks >> end_operator
 
-'''
+```
 
 PICTURE OF FLOW IN AIRFLOW
 
@@ -39,7 +39,7 @@ PICTURE OF FLOW IN AIRFLOW
 ### Delete ALL DAG
 During development & testing I made great use of an optional dag to delete all the Tables in Redshift at once:
 
-'''python
+```python
 
 dag_Delete = DAG('delete_all',
           default_args=default_args,
@@ -54,11 +54,10 @@ delete_tables = PostgresOperator(
 )
 
 
-'''
+```
+
+```sql
+
 DROP TABLE IF EXISTS staging_events, staging_songs, songs, users, artists, time, songplays;
 
-'''sql
-
-
-
-'''
+```
