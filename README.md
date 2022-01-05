@@ -1,6 +1,23 @@
 # Udacity_DataEng_P5
 Udacity Nanodegree Data Engineering - Project 5 Data Pipelines
 
+## DAG
+
+```python
+default_args = {
+    'owner': 'udacity',
+    'depends_on_past': False,
+    'start_date': datetime.utcnow(),
+    'retries': 3,
+    'retry_delay': timedelta(minutes=5),
+    'catchup': False,
+    #'start_date': datetime(2019, 1, 12)
+    
+}
+
+```
+
+
 ## ETL
 
 ### Append-only OR delete-load
