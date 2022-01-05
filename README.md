@@ -32,7 +32,7 @@ run_quality_checks >> end_operator
 
 ```
 
-PICTURE OF FLOW IN AIRFLOW
+
 
 ## Improvement suggestions / Additional work
 
@@ -55,7 +55,7 @@ delete_tables = PostgresOperator(
 
 
 ```
-
+ 
 ```sql
 
 DROP TABLE IF EXISTS staging_events, staging_songs, songs, users, artists, time, songplays;
