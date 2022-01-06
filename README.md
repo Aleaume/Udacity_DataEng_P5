@@ -1,6 +1,68 @@
 # Udacity_DataEng_P5
 Udacity Nanodegree Data Engineering - Project 5 Data Pipelines
 
+## Requirements
+
+## Overview
+
+### Architecture
+
+#### The S3 Bucket
+
+An AWS Bucket made publicly available, own & managed by udacity.
+s3://udacity-dend/
+It contains the different dataset needed for this project, that will be picked up by the etl.py scripts and copied over into the Redshift instance.
+For more details on the dataset see the section "Dataset" = > https://github.com/Aleaume/Udacity_DataEng_P5#dataset 
+
+#### The Redshift DWH
+
+The Data warehouse used in this exercise is an AWS Redshift cluser. It is actually configured and set up via jupyter notebook (see section below).
+In this example we made used of the following parameters:
+
+Param | Value 
+--- | --- 
+DWH_CLUSTER_TYPE	| multi-node
+DWH_NUM_NODES	| 2
+DWH_NODE_TYPE	| dc2.large
+
+#### The dag file
+
+#### The operators
+
+#### The SQL file
+
+### Dataset
+
+#### Song Data
+
+- The song dataset is coming from the Million Song Dataset (https://labrosa.ee.columbia.edu/millionsong/). 
+Each file contains metadat about 1 song and is in json format. 
+Folder structure goes as follow: song_data/[A-Z]/[A-Z]/[A-Z]/name.json 
+
+Here is an example of the file structure:
+
+```json
+
+{"num_songs": 1, "artist_id": "ARJIE2Y1187B994AB7", "artist_latitude": null, "artist_longitude": null, 
+"artist_location": "", "artist_name": "Line Renaud", "song_id": "SOUPIRU12A6D4FA1E1", 
+"title": "Der Kleine Dompfaff", "duration": 152.92036, "year": 0}
+
+```
+
+- The Song data S3 bucket endpoint is : s3://udacity-dend/song_data
+
+#### Log Data
+
+- The second dataset is generated from an event simulator (https://github.com/Interana/eventsim) based on songs in the previous dataset. Also in json it containes the logs of activity of the music streaming app.
+Folder structure goes as follow : log_data/[year]/[month]/[year]-[month]-[day]-events.json
+The file structure itself is similar to this:
+
+![image](https://user-images.githubusercontent.com/32632731/141263859-72aa801e-bad3-4a23-86e4-7898c3cca585.png)
+
+- The Song data S3 bucket endpoint is : s3://udacity-dend/log_data and the json path: s3://udacity-dend/log_json_path.json
+
+
+
 ## DAG
 
 ```python
@@ -54,6 +116,8 @@ If truncate = True, a truncate sql command is run before the sql Insert command:
                                 AND userID IS NOT NULL
 
 ```
+
+
 
 ## Data Quality Checks
 
