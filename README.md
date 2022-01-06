@@ -89,7 +89,7 @@ run_quality_checks >> end_operator
 ```
 ![GraphView](img/Tree.PNG)
 
-![TreeView]img/Treeview.PNG
+![TreeView](img/Treeview.PNG)
 
 ## Improvement suggestions / Additional work
 
