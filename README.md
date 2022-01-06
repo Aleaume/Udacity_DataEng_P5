@@ -2,8 +2,16 @@
 Udacity Nanodegree Data Engineering - Project 5 Data Pipelines
 
 ## Requirements
+The following modules need to be installed:
+
+- Apache Airflow DAG
+- python3
 
 ## Overview
+
+In this project the goal is build a complete ETL pipeline, picking up data from an s3 bucket, into staging tables in a Redshift Datawarehouse, before moving data to fact & dimension tables in a star schema. All this has to be run via Apache Airflow with proper DAGs setup, including tasks order & data quality checks.
+
+
 
 ### Architecture
 
@@ -89,6 +97,134 @@ dag = DAG('udac_example_dag',
 
 ```
 
+## Tables Creation & queries
+
+- The staging tables are simply design as complete replicas of the structure of the json files and goes as described here:
+
+![image](https://user-images.githubusercontent.com/32632731/143940527-05d48049-afcd-4e62-affb-46b28bab4e2f.png)
+
+### staging_events
+
+```SQL
+CREATE TABLE IF NOT EXISTS staging_events(\
+                                artist varchar,
+                                auth varchar,
+                                firstName varchar,
+                                gender varchar,
+                                itemInSession int,
+                                lastName varchar,
+                                length float,
+                                level varchar,
+                                location varchar,
+                                method varchar,
+                                page varchar,
+                                registration float,
+                                sessionId int,
+                                song varchar,
+                                status int,
+                                ts bigint,
+                                userAgent varchar,
+                                userId int
+    )
+
+```
+
+### staging_songs
+
+```SQL
+
+CREATE TABLE IF NOT EXISTS staging_songs(\
+                                num_songs int,
+                                artist_id varchar,
+                                artist_latitude float,
+                                artist_longitude float,
+                                artist_location varchar,
+                                artist_name varchar,
+                                song_id varchar,
+                                title varchar,
+                                duration float,
+                                year int
+
+    )
+
+```
+
+
+- The sparkify DB and tables is created as showed in this diagramm, following Star Schema, were the songplays table is the fact table and the other 4 (users, songs, artists, time) are the dimension tables:
+
+![image](https://user-images.githubusercontent.com/32632731/142909873-78d3c213-c4b4-4b67-a788-6fc1814a15f8.png)
+
+
+
+### songplays
+
+```SQL
+
+CREATE TABLE IF NOT EXISTS songplays(\
+                        songplay_id int IDENTITY(0,1) PRIMARY KEY, \
+                        start_time timestamp NOT NULL, \
+                        user_id int NOT NULL,\
+                        level varchar,\
+                        song_id varchar,\
+                        artist_id varchar,\
+                        session_id int,\
+                        location varchar,\
+                        user_agent varchar);
+
+```
+
+### users
+
+```SQL
+CREATE TABLE IF NOT EXISTS users(\
+                    user_id int PRIMARY KEY,\
+                    first_name varchar,\
+                    last_name varchar,\
+                    gender varchar,\
+                    level varchar);
+
+```
+
+### songs
+
+```SQL
+CREATE TABLE IF NOT EXISTS songs(\
+                    song_id varchar PRIMARY KEY,\
+                    title varchar,\
+                    artist_id varchar NOT NULL,\
+                    year int,\
+                    duration float);
+
+```
+
+### artists
+
+```SQL
+
+CREATE TABLE IF NOT EXISTS artists(\
+                        artist_id varchar PRIMARY KEY,\
+                        name varchar,\
+                        location varchar,\
+                        latitude float,\
+                        longitude float);
+
+```
+
+### time
+
+```SQL
+CREATE TABLE IF NOT EXISTS time (\
+                    start_time timestamp PRIMARY KEY,\
+                    hour int,\
+                    day int,\
+                    week int,\
+                    month int,\
+                    year int,\
+                    weekday int);
+
+```
+
+
 ## ETL
 
 ### Append-only OR delete-load
@@ -121,6 +257,31 @@ If truncate = True, a truncate sql command is run before the sql Insert command:
 
 ## Data Quality Checks
 
+If the checks fails, then a error is raised and task is set to failed and up for retry:
+
+```log
+
+Starting attempt 1 of 4
+--------------------------------------------------------------------------------
+
+[2022-01-06 20:17:58,149] {models.py:1593} INFO - Executing <Task(DataQualityOperator): Run_data_quality_checks_songplays> on 2022-01-06T20:17:06.124343+00:00
+[2022-01-06 20:17:58,149] {base_task_runner.py:118} INFO - Running: ['bash', '-c', 'airflow run udac_example_dag Run_data_quality_checks_songplays 2022-01-06T20:17:06.124343+00:00 --job_id 11 --raw -sd DAGS_FOLDER/udac_example_dag.py --cfg_path /tmp/tmp86l380x6']
+[2022-01-06 20:18:01,479] {base_task_runner.py:101} INFO - Job 11: Subtask Run_data_quality_checks_songplays [2022-01-06 20:18:01,469] {settings.py:174} INFO - settings.configure_orm(): Using pool settings. pool_size=5, pool_recycle=1800, pid=1216
+[2022-01-06 20:18:05,749] {base_task_runner.py:101} INFO - Job 11: Subtask Run_data_quality_checks_songplays [2022-01-06 20:18:05,748] {__init__.py:51} INFO - Using executor LocalExecutor
+[2022-01-06 20:18:07,555] {base_task_runner.py:101} INFO - Job 11: Subtask Run_data_quality_checks_songplays [2022-01-06 20:18:07,541] {models.py:273} INFO - Filling up the DagBag from /home/workspace/airflow/dags/udac_example_dag.py
+[2022-01-06 20:18:07,823] {base_task_runner.py:101} INFO - Job 11: Subtask Run_data_quality_checks_songplays [2022-01-06 20:18:07,823] {cli.py:520} INFO - Running <TaskInstance: udac_example_dag.Run_data_quality_checks_songplays 2022-01-06T20:17:06.124343+00:00 [running]> on host de74d7988ce2
+[2022-01-06 20:18:08,661] {logging_mixin.py:95} INFO - [2022-01-06 20:18:08,660] {base_hook.py:83} INFO - Using connection to: id: redshift. Host: redshift-cluster-1.cvmlouqtoltn.us-west-2.redshift.amazonaws.com, Port: 5439, Schema: dev, Login: awsuser, Password: XXXXXXXX, extra: {}
+[2022-01-06 20:18:09,496] {logging_mixin.py:95} INFO - [2022-01-06 20:18:09,496] {base_hook.py:83} INFO - Using connection to: id: redshift. Host: redshift-cluster-1.cvmlouqtoltn.us-west-2.redshift.amazonaws.com, Port: 5439, Schema: dev, Login: awsuser, Password: XXXXXXXX, extra: {}
+[2022-01-06 20:18:10,122] {models.py:1788} ERROR - Quality check on songplays failed
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.6/site-packages/airflow/models.py", line 1657, in _run_raw_task
+    result = task_copy.execute(context=context)
+  File "/home/workspace/airflow/plugins/operators/data_quality.py", line 46, in execute
+    raise ValueError(log_fail)
+ValueError: Quality check on songplays failed
+[2022-01-06 20:18:10,131] {models.py:1811} INFO - Marking task as UP_FOR_RETRY
+
+```
 
 ## Tasks Dependency
 All the tasks defined have a well stated dependency in specified in the main DAG file as follow,
