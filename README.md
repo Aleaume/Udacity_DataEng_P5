@@ -87,6 +87,7 @@ load_time_dimension_table >> end_operator
 run_quality_checks >> end_operator
 
 ```
+![This is an image](img/Tree.PNG)
 
 
 
