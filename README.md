@@ -40,9 +40,20 @@ DWH_NODE_TYPE	| dc2.large
 
 #### The dag file
 
+The DAG file, udac_dag.py contains 2 defined DAGs (Direct Acyclic Graph):
+- udac_dag, responsible for the complete pipeline it is made of all the tasks discussed in this project
+- dag_Delete to cleanup during development.
+
 #### The operators
 
+- stage_redshift.py, responsible for the copy of the json files in s3 bucket to the staging tables in Redshift
+- load_fact.py, load the fact table from the staging tables
+- load_dimension.py load the dimension tables from the staging tables
+- data_quality.py ensure quality checks on the fact & dimension tables before ending pipeline.
+
 #### The SQL file
+
+Single repository of all SQL queries used along the project, sql_queries.py
 
 ### Dataset
 
@@ -78,6 +89,8 @@ The file structure itself is similar to this:
 
 ## DAG
 
+The DAG is made of defautl arguments as follow
+
 ```python
 default_args = {
     'owner': 'udacity',
@@ -92,15 +105,25 @@ default_args = {
 
 ```
 
+and is simply defined this way:
+
 ```python
 
-dag = DAG('udac_example_dag',
+dag = DAG('udac_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
           schedule_interval='0 * * * *'
         )
 
 ```
+
+It is composed of different tasks made from Operators:
+- StageToRedshiftOperator, custom 
+- LoadFactOperator, custom
+- LoadDimensionOperator, custom
+- DataQualityOperator, custom
+- PostgresOperator, standard for calling SQl queries on the Redshift DWH
+- DummyOperator, standard for markin in the DAG begin & end steps.
 
 ## Tables Creation & queries
 
@@ -163,10 +186,13 @@ CREATE TABLE IF NOT EXISTS staging_songs(\
 
 ### songplays
 
+Note: adapted to have a dynamic operator to load. In previous projects we used IDENTITY for the songplay_id as such:
+ - songplay_id int IDENTITY(0,1) PRIMARY KEY
+
 ```SQL
 
 CREATE TABLE IF NOT EXISTS songplays(\
-                        songplay_id int IDENTITY(0,1) PRIMARY KEY, \
+                        songplay_id varchar PRIMARY KEY, \
                         start_time timestamp NOT NULL, \
                         user_id int NOT NULL,\
                         level varchar,\
@@ -232,6 +258,132 @@ CREATE TABLE IF NOT EXISTS time (\
 
 ## ETL
 
+### COPY into Staging tables
+
+#### staging_events
+
+This is done via the stage_redshift Operator in a generic way as such :
+
+```python
+
+copy_sql = """
+        COPY {}
+        FROM '{}'
+        ACCESS_KEY_ID '{}'
+        SECRET_ACCESS_KEY '{}'
+        FORMAT {}
+    """
+
+```
+
+```SQL
+("""
+	copy staging_events from 's3://udacity-dend/log_data/' 
+	credentials 'aws_iam_role={}'
+	format json as 's3://udacity-dend/log_json_path.json'
+	region 'us-west-2'
+	dateformat 'auto';
+""").format(ARN)
+
+```
+#### staging_songs
+
+```SQL
+
+("""
+	copy staging_songs from 's3://udacity-dend/song_data/{}' 
+	credentials 'aws_iam_role={}'
+	format as json 'auto'
+	region 'us-west-2';
+""").format('',ARN)
+
+```
+
+### INSERTS into final tables
+
+These operations are done via the load_dimension and the load_fact operators. Build in a generic way in order to use the same regardless of the tables:
+
+
+```python
+insert_sql = """
+            INSERT INTO {}
+            {}
+       """
+```
+
+#### songplays
+
+Note: this query had to be adapted compared to similar previous projects to accomodate the generic use of the operator.
+for songplay_id we do not use the IDENTITY feature to generate a key but rather generate ourselves with:
+- md5(events.sessionid || events.start_time) songplay_id
+
+```SQL
+INSERT INTO songplays
+    SELECT
+                md5(events.sessionid || events.start_time) songplay_id,
+                events.start_time, 
+                events.userid, 
+                events.level, 
+                songs.song_id, 
+                songs.artist_id, 
+                events.sessionid, 
+                events.location, 
+                events.useragent
+                FROM (SELECT TIMESTAMP 'epoch' + ts/1000 * interval '1 second' AS start_time, *
+            FROM staging_events
+            WHERE page='NextSong') events
+            LEFT JOIN staging_songs songs
+            ON events.song = songs.title
+                AND events.artist = songs.artist_name
+                AND events.length = songs.duration;
+
+```
+
+#### users
+
+```SQL
+INSERT INTO users
+                            SELECT DISTINCT userId, firstName, lastName, gender, level \
+                            FROM staging_events \
+                            WHERE page = 'NextSong'\
+                            AND userID IS NOT NULL;
+
+```
+
+#### songs
+
+```SQL
+INSERT INTO songs
+                            SELECT DISTINCT song_id, title, artist_id, year, duration \
+                            FROM staging_songs;
+
+```
+
+#### artists
+
+```SQL
+
+INSERT INTO artists
+                            SELECT DISTINCT artist_id, artist_name, artist_location, artist_latitude, artist_longitude \
+                            FROM staging_songs;
+```
+
+#### time
+
+```SQL
+INSERT INTO time
+                            SELECT DISTINCT timestamp 'epoch' + CAST(ts AS BIGINT)/1000 * interval '1 second' AS ts_ts, \
+                            EXTRACT(HOUR FROM ts_ts), \
+                            EXTRACT(DAY FROM ts_ts), \
+                            EXTRACT(WEEK FROM ts_ts),\
+                            EXTRACT(MONTH FROM ts_ts),\
+                            EXTRACT(YEAR FROM ts_ts), \
+                            EXTRACT(WEEKDAY FROM ts_ts)  \
+                            FROM staging_events \
+                            WHERE page = 'NextSong';
+
+```
+
 ### Append-only OR delete-load
 
 Thanks to a flag parmaeter bool trucate in each loading tasks, user can choose either to append-only or to delete-load.
@@ -261,6 +413,26 @@ If truncate = True, a truncate sql command is run before the sql Insert command:
 
 
 ## Data Quality Checks
+
+Before ending the pipeline some data check operator has been configured.
+
+In here we want to make sure loading of dimensions & fact tables have been run successfully.
+In order to control this we compare the staging tables with the corresponding star schema tables.
+
+```python
+...
+log_success = "Quality check on {} passed with {} records".format(self.table_star,records_staging) 
+        log_fail = "Quality check on {} failed. {} with {} -- where staging with {}".format(self.table_star, self.table_star,records_dimfact, records_dimfact) 
+        
+        if records_staging == records_dimfact:
+            
+            self.log.info(log_success)
+        else:
+            raise ValueError(log_fail)
+
+```
+
+:warning: NOTE: this is only one type of data quality check possible for this pipeline. For instead if an error would occur at the stage to redshift phase and not copy data. This data quality check would not catch the error and simply compare 0 recor with 0 and log in a success.
 
 If the checks fails, then a error is raised and task is set to failed and up for retry:
 
