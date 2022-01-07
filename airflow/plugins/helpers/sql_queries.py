@@ -1,4 +1,43 @@
 class SqlQueries:
+    create_events_table = ("""
+        CREATE TABLE IF NOT EXISTS staging_events(\
+                                artist varchar,
+                                auth varchar,
+                                firstName varchar,
+                                gender varchar,
+                                itemInSession int,
+                                lastName varchar,
+                                length float,
+                                level varchar,
+                                location varchar,
+                                method varchar,
+                                page varchar,
+                                registration float,
+                                sessionId int,
+                                song varchar,
+                                status int,
+                                ts bigint,
+                                userAgent varchar,
+                                userId int
+            )
+        
+    """)
+    
+    create_songs_table = ("""
+       CREATE TABLE IF NOT EXISTS staging_songs(\
+                                num_songs int,
+                                artist_id varchar,
+                                artist_latitude float,
+                                artist_longitude float,
+                                artist_location varchar,
+                                artist_name varchar,
+                                song_id varchar,
+                                title varchar,
+                                duration float,
+                                year int
+
+            ) 
+    """)
     songplay_table_insert = ("""
         SELECT
                 md5(events.sessionid || events.start_time) songplay_id,
@@ -23,6 +62,7 @@ class SqlQueries:
         SELECT distinct userid, firstname, lastname, gender, level
         FROM staging_events
         WHERE page='NextSong'
+        AND userID IS NOT NULL
     """)
 
     song_table_insert = ("""
@@ -40,3 +80,60 @@ class SqlQueries:
                extract(month from start_time), extract(year from start_time), extract(dayofweek from start_time)
         FROM songplays
     """)
+    
+    create_table_songplays = ("""
+        CREATE TABLE IF NOT EXISTS songplays(\
+                        songplay_id varchar PRIMARY KEY, \
+                        start_time timestamp NOT NULL, \
+                        user_id int NOT NULL,\
+                        level varchar,\
+                        song_id varchar,\
+                        artist_id varchar,\
+                        session_id int,\
+                        location varchar,\
+                        user_agent varchar);
+    
+    """)
+    
+    create_table_users = ("""
+        CREATE TABLE IF NOT EXISTS users(
+                    user_id int PRIMARY KEY,
+                    first_name varchar,
+                    last_name varchar,
+                    gender varchar,
+                    level varchar)
+    """)
+    
+    create_table_songs = ("""
+        CREATE TABLE IF NOT EXISTS songs(
+                    song_id varchar PRIMARY KEY,
+                    title varchar,
+                    artist_id varchar NOT NULL,
+                    year int,
+                    duration float)
+        
+    """)
+    create_table_artists = ("""
+        CREATE TABLE IF NOT EXISTS artists(
+                        artist_id varchar PRIMARY KEY,
+                        name varchar,
+                        location varchar,
+                        latitude float,
+                        longitude float)
+    """)
+    
+    create_table_time = ("""
+        CREATE TABLE IF NOT EXISTS time (
+                    start_time timestamp PRIMARY KEY,
+                    hour int,
+                    day int,
+                    week int,
+                    month int,
+                    year int,
+                    weekday int)
+    """)
+    
+    drop_all_tables = ("""
+        DROP TABLE IF EXISTS staging_events, staging_songs, songs, users, artists, time, songplays;
+    """)
+    
