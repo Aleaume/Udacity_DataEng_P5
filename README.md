@@ -125,6 +125,8 @@ It is composed of different tasks made from Operators:
 - PostgresOperator, standard for calling SQl queries on the Redshift DWH
 - DummyOperator, standard for markin in the DAG begin & end steps.
 
+![Gant](img/Gantt.PNG)
+
 ## Tables Creation & queries
 
 - The staging tables are simply design as complete replicas of the structure of the json files and goes as described here:
