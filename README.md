@@ -15,6 +15,9 @@ In this project the goal is build a complete ETL pipeline, picking up data from 
 
 ### Architecture
 
+![image](https://user-images.githubusercontent.com/32632731/148605320-98dedf60-2851-473f-98ae-122ba5e2c6dc.png)
+
+
 #### The S3 Bucket
 
 An AWS Bucket made publicly available, own & managed by udacity.
