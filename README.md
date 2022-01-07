@@ -520,3 +520,9 @@ delete_tables = PostgresOperator(
 DROP TABLE IF EXISTS staging_events, staging_songs, songs, users, artists, time, songplays;
 
 ```
+
+### Improvements
+
+- First next improvement would be to add different data quality check for other stages of the pipeline.
+- Also it would be useful to create a subdag for the dimesion & fact loading + data quality checks tasks. This would make the DAG easier to understand at first sight.
+- Performances also could be investigated.
