@@ -15,6 +15,8 @@ In this project the goal is build a complete ETL pipeline, picking up data from 
 
 ### Architecture
 
+The project is composed of different cloud components and a few scripts working together as described in this diagram:
+
 ![image](https://user-images.githubusercontent.com/32632731/148605320-98dedf60-2851-473f-98ae-122ba5e2c6dc.png)
 
 
