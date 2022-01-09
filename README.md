@@ -49,7 +49,8 @@ The DAG file, udac_dag.py contains 2 defined DAGs (Direct Acyclic Graph):
 - stage_redshift.py, responsible for the copy of the json files in s3 bucket to the staging tables in Redshift
 - load_fact.py, load the fact table from the staging tables
 - load_dimension.py load the dimension tables from the staging tables
-- data_quality.py ensure quality checks on the fact & dimension tables before ending pipeline.
+- data_quality.py ensure any given tables as input is not empty after having gone to its load operator.
+- data_quality_spec.py ensure specific quality checks on the fact & dimension tables before ending pipeline.
 
 #### The SQL file
 
