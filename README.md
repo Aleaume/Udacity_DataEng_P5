@@ -112,7 +112,8 @@ and is simply defined this way:
 dag = DAG('udac_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
-          schedule_interval='0 * * * *'
+          schedule_interval='@hourly'
+	  schedule_interval='0 * * * *'
         )
 
 ```
@@ -122,10 +123,11 @@ It is composed of different tasks made from Operators:
 - LoadFactOperator, custom
 - LoadDimensionOperator, custom
 - DataQualityOperator, custom
+- DataQualityOperatorSpecific, custom
 - PostgresOperator, standard for calling SQl queries on the Redshift DWH
 - DummyOperator, standard for markin in the DAG begin & end steps.
 
-![Gant](img/Gantt.PNG)
+![Gant](image/Gantt.PNG)
 
 ## Tables Creation & queries
 
@@ -519,30 +521,24 @@ starting with a start_execution and finishing with an end_execution task.
 
 start_operator >> create_staging_tables
 
-create_staging_tables >> stage_events_to_redshift
-create_staging_tables >> stage_songs_to_redshift
+create_staging_tables >> [stage_events_to_redshift, stage_songs_to_redshift]
 
-stage_songs_to_redshift >> create_star_tables 
-stage_events_to_redshift >> create_star_tables
+create_star_tables << [stage_events_to_redshift, stage_songs_to_redshift]
 
 create_star_tables >> load_songplays_table
 
-load_songplays_table >> load_user_dimension_table
-load_songplays_table >> load_song_dimension_table
-load_songplays_table >> load_artist_dimension_table
-load_songplays_table >> load_time_dimension_table
+load_songplays_table >> [load_user_dimension_table, load_song_dimension_table, load_artist_dimension_table, load_time_dimension_table]
 
-load_user_dimension_table >> end_operator
-load_song_dimension_table >> run_quality_checks 
-load_artist_dimension_table >> end_operator
-load_time_dimension_table >> end_operator
+run_qualiy_checks_general << [load_user_dimension_table, load_song_dimension_table, load_artist_dimension_table, load_time_dimension_table]
 
-run_quality_checks >> end_operator
+run_qualiy_checks_general >> [run_quality_checks_users, run_quality_checks_songs, run_quality_checks_artists, run_quality_checks_time, run_quality_checks_songplays]
+
+end_operator << [run_quality_checks_users, run_quality_checks_songs, run_quality_checks_artists, run_quality_checks_time, run_quality_checks_songplays]
 
 ```
-![GraphView](img/Tree.PNG)
+![GraphView](image/Tree.PNG)
 
-![TreeView](img/Treeview.PNG)
+![TreeView](image/Treeview.PNG)
 
 ## Improvement suggestions / Additional work
 
