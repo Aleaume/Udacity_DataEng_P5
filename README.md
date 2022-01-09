@@ -416,6 +416,55 @@ If truncate = True, a truncate sql command is run before the sql Insert command:
 
 ## Data Quality Checks
 
+### General use Data Quality Check
+
+As requested some generic data quality check have to been implemented once all tables are loaded.
+
+In here we simply query any desired tables and count the records to make sure there is at least 1 in each tables:
+
+```log
+
+*** Reading local file: /root/airflow/logs/udac_dag/General_Data_quality_check/2022-01-09T14:49:45.830697+00:00/1.log
+[2022-01-09 14:50:57,047] {models.py:1359} INFO - Dependencies all met for <TaskInstance: udac_dag.General_Data_quality_check 2022-01-09T14:49:45.830697+00:00 [queued]>
+[2022-01-09 14:50:57,056] {models.py:1359} INFO - Dependencies all met for <TaskInstance: udac_dag.General_Data_quality_check 2022-01-09T14:49:45.830697+00:00 [queued]>
+[2022-01-09 14:50:57,056] {models.py:1571} INFO - 
+--------------------------------------------------------------------------------
+Starting attempt 1 of 4
+--------------------------------------------------------------------------------
+
+[2022-01-09 14:50:57,076] {models.py:1593} INFO - Executing <Task(DataQualityOperator): General_Data_quality_check> on 2022-01-09T14:49:45.830697+00:00
+[2022-01-09 14:50:57,076] {base_task_runner.py:118} INFO - Running: ['bash', '-c', 'airflow run udac_dag General_Data_quality_check 2022-01-09T14:49:45.830697+00:00 --job_id 78 --raw -sd DAGS_FOLDER/udac_dag.py --cfg_path /tmp/tmpa60s34er']
+[2022-01-09 14:50:57,638] {base_task_runner.py:101} INFO - Job 78: Subtask General_Data_quality_check [2022-01-09 14:50:57,637] {settings.py:174} INFO - settings.configure_orm(): Using pool settings. pool_size=5, pool_recycle=1800, pid=12463
+[2022-01-09 14:50:58,492] {base_task_runner.py:101} INFO - Job 78: Subtask General_Data_quality_check [2022-01-09 14:50:58,492] {__init__.py:51} INFO - Using executor LocalExecutor
+[2022-01-09 14:50:58,980] {base_task_runner.py:101} INFO - Job 78: Subtask General_Data_quality_check [2022-01-09 14:50:58,980] {models.py:273} INFO - Filling up the DagBag from /home/workspace/airflow/dags/udac_dag.py
+[2022-01-09 14:50:59,020] {base_task_runner.py:101} INFO - Job 78: Subtask General_Data_quality_check [2022-01-09 14:50:59,019] {cli.py:520} INFO - Running <TaskInstance: udac_dag.General_Data_quality_check 2022-01-09T14:49:45.830697+00:00 [running]> on host 40f657b41109
+[2022-01-09 14:50:59,170] {logging_mixin.py:95} INFO - [2022-01-09 14:50:59,169] {base_hook.py:83} INFO - Using connection to: id: redshift. Host: redshift-cluster-1.cvmlouqtoltn.us-west-2.redshift.amazonaws.com, Port: 5439, Schema: dev, Login: awsuser, Password: XXXXXXXX, extra: {}
+[2022-01-09 14:50:59,813] {data_quality.py:34} INFO - PASSED !! users returned 104 records
+[2022-01-09 14:50:59,825] {logging_mixin.py:95} INFO - [2022-01-09 14:50:59,825] {base_hook.py:83} INFO - Using connection to: id: redshift. Host: redshift-cluster-1.cvmlouqtoltn.us-west-2.redshift.amazonaws.com, Port: 5439, Schema: dev, Login: awsuser, Password: XXXXXXXX, extra: {}
+[2022-01-09 14:51:00,414] {data_quality.py:34} INFO - PASSED !! songs returned 24 records
+[2022-01-09 14:51:00,449] {base_task_runner.py:101} INFO - Job 78: Subtask General_Data_quality_check /opt/conda/lib/python3.6/site-packages/airflow/utils/helpers.py:356: DeprecationWarning: Importing 'PostgresOperator' directly from 'airflow.operators' has been deprecated. Please import from 'airflow.operators.[operator_module]' instead. Support for direct imports will be dropped entirely in Airflow 2.0.
+[2022-01-09 14:51:00,449] {base_task_runner.py:101} INFO - Job 78: Subtask General_Data_quality_check   DeprecationWarning)
+[2022-01-09 14:51:02,107] {logging_mixin.py:95} INFO - [2022-01-09 14:51:02,106] {jobs.py:2527} INFO - Task exited with return code 0
+
+```
+
+```python
+
+ for table in self.tables_list:
+            records_count = redshift.get_records(f"Select count(*) from {table}")[0]
+
+            log_success = "PASSED !! {} returned {} records".format(table, records_count[0]) 
+            log_fail = "FAILED !! {} returned {} records".format(table, records_count[0]) 
+
+            if records_count[0] < 1:
+                raise ValueError(log_fail)
+            else:
+                self.log.info(log_success)
+
+```
+
+### Specific Quality Check
+
 Before ending the pipeline some data check operator has been configured.
 
 In here we want to make sure loading of dimensions & fact tables have been run successfully.
